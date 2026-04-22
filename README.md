@@ -1,38 +1,28 @@
-Role Name
-=========
+# Laravel & React Stack Ansible Role
 
-A brief description of the role goes here.
+An Ansible role that automates the deployment of a full-stack environment with a Laravel API and a React frontend on Ubuntu or Red Hat/CentOS.
 
-Requirements
-------------
+## Requirements
+- Access to a server running Ubuntu or Red Hat/CentOS.
+- Sudo privileges.
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Role Variables
+Available variables are listed below, along with default values (see `defaults/main.yml`):
 
-Role Variables
---------------
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `app_user` | `USER` | The system user for deployment |
+| `app_name` | `my-test-app` | Name of the application |
+| `base_path` | `/var/www/my-test-app` | Path to the project root |
+| `enable_ssl` | `false` | Whether to enable Let's Encrypt SSL |
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+## Dependencies
+- geerlingguy.nginx
+- geerlingguy.php
+- geerlingguy.mysql
 
-Dependencies
-------------
-
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
-
-Example Playbook
-----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
-
-License
--------
-
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+## Example Playbook
+```yaml
+- hosts: webservers
+  roles:
+     - { role: hadeer-elnaghy.laravel-react-stack }
