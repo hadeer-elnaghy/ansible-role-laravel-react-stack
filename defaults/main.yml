@@ -1,0 +1,12 @@
+---
+app_user: user
+app_name: my-test-app
+base_path: "/var/www/{{ app_name }}"
+php_version: "8.3"
+
+# Nginx Routing Logic
+api_path: "/api"
+frontend_dist_folder: "dist" # Common for Vite/React
+
+# Cross-platform socket paths
+php_fpm_socket: "{{ '/var/run/php/php' + php_version + '-fpm.sock' if ansible_os_family == 'Debian' else '/var/run/php-fpm/www.sock' }}"
