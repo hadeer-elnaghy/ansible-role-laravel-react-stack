@@ -1,30 +1,56 @@
+{% if enable_ssl | bool %}
+# 1. Redirect HTTP to HTTPS
 server {
     listen 80;
-    server_name {{ ansible_host }};
-    root {{ base_path }}/public;
+    server_name {{ domain_name }};
+    return 301 https://$host$request_uri;
+}
 
+# 2. HTTPS Server Block
+server {
+    listen 443 ssl;
+    server_name {{ domain_name }};
+    
+    ssl_certificate /etc/letsencrypt/live/{{ domain_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ domain_name }}/privkey.pem;
+
+    root {{ base_path }}/public;
     index index.php index.html;
 
-    charset utf-8;
-
     location / {
-        # This allows React Router to work without 404s
         try_files $uri $uri/ /index.html;
     }
 
     location {{ api_path }} {
-        # This sends API requests to Laravel's index.php
         try_files $uri $uri/ /index.php?$query_string;
     }
 
     location ~ \.php$ {
         fastcgi_pass unix:{{ php_fpm_socket }};
-        fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
+}
+{% else %}
+# 3. Standard HTTP Server Block (No SSL)
+server {
+    listen 80;
+    server_name {{ ansible_host }}; # Falls back to IP if no domain
+    root {{ base_path }}/public;
+    index index.php index.html;
 
-    location ~ /\.ht {
-        deny all;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location {{ api_path }} {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:{{ php_fpm_socket }};
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 }
+{% endif %}

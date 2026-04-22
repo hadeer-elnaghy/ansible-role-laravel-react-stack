@@ -10,3 +10,10 @@ frontend_dist_folder: "dist" # Common for Vite/React
 
 # Cross-platform socket paths
 php_fpm_socket: "{{ '/var/run/php/php' + php_version + '-fpm.sock' if ansible_os_family == 'Debian' else '/var/run/php-fpm/www.sock' }}"
+
+php_fpm_service: "{{ 'php' + php_version + '-fpm' if ansible_facts['os_family'] == 'Debian' else 'php-fpm' }}"
+
+# SSL Settings
+enable_ssl: false
+ssl_email: "user@example.com"
+domain_name: "yourdomain.com"

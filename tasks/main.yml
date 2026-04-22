@@ -1,4 +1,27 @@
 ---
+# 1. Install Node.js for Ubuntu (using NodeSource script)
+- name: Install Node.js on Ubuntu
+  shell: curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+  when: ansible_os_family == "Debian"
+  changed_when: false
+
+# 2. Install Node.js for Red Hat (Direct DNF install)
+- name: Install Node.js on Red Hat
+  dnf:
+    name: nodejs
+    state: present
+  when: ansible_os_family == "RedHat"
+
+# 3. Verify installation
+- name: Check Node version
+  command: node -v
+  register: node_version
+  changed_when: false
+
+- name: Print Node version
+  debug:
+    msg: "Node.js version installed is {{ node_version.stdout }}"
+
 - name: Install specialized PHP extensions for Laravel
   package:
     name: ["php-bcmath", "php-xml", "php-mbstring", "php-gd"]
@@ -23,8 +46,43 @@
 - name: Configure Nginx for Laravel and React
   template:
     src: nginx_vhost.j2
-    dest: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    # This picks the correct folder for the OS
+    dest: "{{ '/etc/nginx/sites-available/' + app_name + '.conf' if ansible_os_family == 'Debian' else '/etc/nginx/conf.d/' + app_name + '.conf' }}"
   notify: reload nginx
+
+# Ubuntu specific: Create the symbolic link to 'enable' the site
+- name: Enable Nginx site (Ubuntu only)
+  file:
+    src: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ app_name }}.conf"
+    state: link
+  when: ansible_os_family == "Debian"
+  notify: reload nginx
+  
+
+- name: Install Certbot and Nginx plugin
+  package:
+    name:
+      - certbot
+      - "{{ 'python3-certbot-nginx' if ansible_facts['os_family'] == 'Debian' else 'python3-certbot-nginx' }}"
+    state: present
+
+- name: Generate SSL Certificate (Only if enabled)
+  command: >
+    certbot --nginx --non-interactive --agree-tos
+    --email {{ ssl_email }}
+    -d {{ domain_name }}
+  when: enable_ssl | bool
+  register: certbot_result
+  changed_when: "'Successfully deployed certificate' in certbot_result.stdout"
+  # This task might fail if DNS isn't pointing to the IP yet, so we allow it to skip
+  failed_when: false 
+
+- name: Set up Certbot auto-renewal (Cron)
+  cron:
+    name: "Certbot Automatic Renewal"
+    job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+    special_time: daily  
 
 - name: Optimize PHP-FPM settings
   lineinfile:
